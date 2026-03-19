@@ -189,7 +189,7 @@ export default function AdminDashboard() {
                       <button onClick={() => handleCharge(charge.id, 'approve')} disabled={processingId === charge.id} style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#00E676,#00B248)', color: 'white', fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                         <Check size={15} /> قبول الدفعة
                       </button>
-                      <button onClick={() => handleCharge(charge.id, 'reject')} disabled={processingId === charge.id} style={{ flex: 1, padding: '9px', borderRadius: 10, border: 'none', cursor: 'pointer', background: 'rgba(255,82,82,0.15)', color: '#FF5252', border: '1px solid rgba(255,82,82,0.3)', fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                      <button onClick={() => handleCharge(charge.id, 'reject')} disabled={processingId === charge.id} style={{ flex: 1, padding: '9px', borderRadius: 10, border: '1px solid rgba(255,82,82,0.3)', cursor: 'pointer', background: 'rgba(255,82,82,0.15)', color: '#FF5252', fontFamily: 'Cairo, sans-serif', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
                         <X size={15} /> رفض
                       </button>
                     </div>
