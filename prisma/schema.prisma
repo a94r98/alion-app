@@ -1,0 +1,246 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String?
+  firstName     String?
+  lastName      String?
+  email         String   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  username      String?  @unique
+  phone         String?
+  balance       Float    @default(0)
+  role          String   @default("user") // user | admin
+  status        String   @default("active") // active | suspended | banned
+  twoFAEnabled  Boolean  @default(false)
+  twoFASecret   String?
+  kycStatus     String   @default("pending") // pending | verified | rejected
+  language      String   @default("ar")
+  theme         String   @default("dark")
+  totalOrders   Int      @default(0)
+  totalSpent    Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  charges       Charge[]
+  transactions  WalletTransaction[]
+  kyc           KycVerification?
+  fraudFlags    FraudFlag[]
+  chatSessions  ChatSession[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  nameAr      String
+  nameEn      String
+  nameTr      String?
+  slug        String    @unique
+  icon        String?
+  image       String?
+  color       String?
+  sortOrder   Int       @default(0)
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  products    Product[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  categoryId  String
+  name        String
+  nameAr      String
+  nameEn      String
+  nameTr      String?
+  slug        String   @unique
+  description String?
+  image       String?
+  price       Float
+  currency    String   @default("USD")
+  type        String   // game | chat | telecom | other
+  inputType   String   // userId | phone | code
+  inputLabel  String?
+  inputLabelAr String?
+  isAvailable Boolean  @default(true)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  totalSold   Int      @default(0)
+  metadata    String?  // JSON string for extra fields
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category    Category @relation(fields: [categoryId], references: [id])
+  orders      Order[]
+}
+
+model Order {
+  id          String   @id @default(cuid())
+  userId      String
+  productId   String
+  amount      Float
+  currency    String   @default("USD")
+  quantity    Int      @default(1)
+  inputValue  String   // userId / phone / etc
+  status      String   @default("pending") // pending | processing | completed | failed | refunded
+  note        String?
+  adminNote   String?
+  processedAt DateTime?
+  processedBy String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id])
+  product     Product  @relation(fields: [productId], references: [id])
+}
+
+model Charge {
+  id           String   @id @default(cuid())
+  userId       String
+  amount       Float
+  currency     String   @default("USD")
+  method       String   // usdt | shamcash | office | western | code
+  methodLabel  String?
+  proofImage   String?  // uploaded image path
+  senderName   String?
+  senderNote   String?
+  status       String   @default("pending") // pending | approved | rejected
+  adminNote    String?
+  reviewedAt   DateTime?
+  reviewedBy   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model WalletTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // credit | debit
+  amount      Float
+  balanceBefore Float
+  balanceAfter  Float
+  description String?
+  refType     String?  // order | charge | refund | admin
+  refId       String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model KycVerification {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  fullName    String
+  nationalId  String?
+  extraInfo   String?
+  status      String   @default("pending") // pending | verified | rejected
+  submittedAt DateTime @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?
+  note        String?
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model FraudFlag {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // duplicate_order | suspicious_charge | multiple_accounts | rapid_orders
+  description String?
+  severity    String   @default("low") // low | medium | high | critical
+  isResolved  Boolean  @default(false)
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String?
+  sessionId String        @unique
+  language  String        @default("ar")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  user      User?         @relation(fields: [userId], references: [id])
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  role      String      // user | assistant
+  content   String
+  createdAt DateTime    @default(now())
+
+  session   ChatSession @relation(fields: [sessionId], references: [id])
+}
+
+model SiteSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model PaymentMethod {
+  id          String   @id @default(cuid())
+  name        String
+  nameAr      String
+  nameEn      String
+  slug        String   @unique
+  image       String?
+  description String?
+  instructions String?
+  instructionsAr String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+}
