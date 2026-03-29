@@ -1,12 +1,10 @@
 import { NextAuthOptions } from 'next-auth'
 import CredentialsProvider from 'next-auth/providers/credentials'
 import GoogleProvider from 'next-auth/providers/google'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { prisma } from './prisma'
 import bcrypt from 'bcryptjs'
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt' },
   pages: {
     signIn: '/auth/login',
@@ -48,10 +46,42 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      // For Google sign-in, create or update the user in DB
+      if (account?.provider === 'google') {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email! },
+          })
+          if (!existingUser) {
+            const username = `user_${Date.now()}`
+            await prisma.user.create({
+              data: {
+                email: user.email!,
+                name: user.name || '',
+                image: user.image,
+                username,
+                emailVerified: new Date(),
+              },
+            })
+          }
+        } catch (err) {
+          console.error('Google sign-in error:', err)
+          return false
+        }
+      }
+      return true
+    },
+    async jwt({ token, user, account }) {
       if (user) {
-        token.role = (user as any).role
-        token.id = user.id
+        // Fetch fresh user data from DB
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email! },
+        })
+        if (dbUser) {
+          token.role = dbUser.role
+          token.id = dbUser.id
+        }
       }
       return token
     },
